@@ -10,6 +10,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.session.SessionInformation;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.session.data.redis.RedisSessionRepository;
 import org.springframework.session.security.SpringSessionBackedSessionRegistry;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,7 @@ import javax.imageio.ImageIO;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -41,6 +43,7 @@ public class LoginController {
     @Autowired
     SpringSessionBackedSessionRegistry springSessionBackedSessionRegistry;
 
+
     @RequestMapping("/")
     public String showHome() {
         String name = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -57,6 +60,16 @@ public class LoginController {
     @ResponseBody
     public String sessionTimeOut() {
         return "session 过期清除了......";
+    }
+
+
+    @RequestMapping("/sms/code")
+    @ResponseBody
+    public void sms(String mobile, HttpSession session) {
+        int code = (int) Math.ceil(Math.random() * 9000 + 1000);
+        session.setAttribute("phone", mobile);
+        session.setAttribute("code", code+"");
+        logger.info("{}：为 {} 设置短信验证码：{}", session.getId(), mobile, code);
     }
 
     @RequestMapping("/login")
@@ -139,30 +152,26 @@ public class LoginController {
     }
 
     @GetMapping("/kick")
+    @PreAuthorize( "hasRole('ROLE_ADMIN')" )
     @ResponseBody
     public String removeUserSessionByUsername(@RequestParam String username) {
         int count = 0;
-
-        // 获取session中所有的用户信息
-        List<Object> users = springSessionBackedSessionRegistry.getAllPrincipals();
-        for (Object principal : users) {
-            if (principal instanceof User) {
-                String principalName = ((User)principal).getUsername();
-                if (principalName.equals(username)) {
-                    // 参数二：是否包含过期的Session
-                    List<SessionInformation> sessionsInfo = springSessionBackedSessionRegistry.getAllSessions(principal, false);
-                    if (null != sessionsInfo && sessionsInfo.size() > 0) {
-                        for (SessionInformation sessionInformation : sessionsInfo) {
-                            sessionInformation.expireNow();
-                            count++;
-                        }
-                    }
-                }
+        List<SessionInformation> sessionsInfo = springSessionBackedSessionRegistry.getAllSessions(username, false);
+        if (null != sessionsInfo && sessionsInfo.size() > 0) {
+            for (SessionInformation sessionInformation : sessionsInfo) {
+                sessionInformation.expireNow();
+                count++;
             }
         }
         return "操作成功，清理session共" + count + "个";
     }
 
+
+    /*@GetMapping
+    @ResponseBody
+    public String getAllSessions(){
+
+    }*/
 
 
 }

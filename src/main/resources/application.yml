@@ -10,6 +10,8 @@ spring:
     url: jdbc:mysql://106.15.233.201:3306/security_authority?characterEncoding=UTF8&serverTimezone=GMT%2B8
     username: root
     password: 123456
+    hikari:
+      max-lifetime: 120000
   jpa:
     show-sql: true
   thymeleaf:
@@ -24,4 +26,4 @@ spring:
         - 106.15.233.201:26380
         - 106.15.233.201:26381
       master: mymaster
-    timeout: 1s
+    timeout: 3s

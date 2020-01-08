@@ -4,6 +4,7 @@ import com.wp.security.CustomAccessDeniedHandler;
 import com.wp.security.CustomExpiredSessionStrategy;
 import com.wp.security.VerifyFilter;
 import com.wp.service.impl.UserDetailService;
+import com.wp.sms.SmsAuthenticationSecurityConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,19 +52,23 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     CustomExpiredSessionStrategy customExpiredSessionStrategy;
     @Autowired
     private FindByIndexNameSessionRepository mySessionRepository;
+    @Autowired
+    SmsAuthenticationSecurityConfig smsAuthenticationSecurityConfig;
 
     // 是session为Spring Security提供的
     // 用于在集群环境下控制会话并发的会话注册表实现
     @Bean
     public SpringSessionBackedSessionRegistry springSessionBackedSessionRegistry(){
+
         return new SpringSessionBackedSessionRegistry(mySessionRepository);
     }
     @Override
     public void configure( HttpSecurity http) throws Exception {
+        http.apply( smsAuthenticationSecurityConfig );
         http.authorizeRequests()
                 // 如果有允许匿名的url，填在下面
 //                .antMatchers().permitAll()
-                .antMatchers( "/login/error","/captcha.jpg","/invaild/session" ).permitAll()
+                .antMatchers("/captcha.jpg","/invaild/session","/sms/**" ).permitAll()
                 .anyRequest().authenticated()
                 .and()//.addFilterBefore( new VerifyFilter(), UsernamePasswordAuthenticationFilter.class )
                 // 设置登陆页
