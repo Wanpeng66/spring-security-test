@@ -1,13 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
 </head>
 <body>
 <h1>登陆成功</h1>
-<a href="/admin">检测ROLE_ADMIN角色</a>
-<a href="/user">检测ROLE_USER角色</a>
+<div sec:authorize="hasRole('ROLE_ADMIN')">
+    This content is only shown to administrators.
+    <a href="/admin" th:href="@{/admin}">检测ROLE_ADMIN角色</a>
+</div>
+<div sec:authorize="hasRole('ROLE_USER')">
+    <a href="/user">检测ROLE_USER角色</a>
+</div>
+
 <button onclick="window.location.href='/logout'">退出登录</button>
 </body>
 </html>
