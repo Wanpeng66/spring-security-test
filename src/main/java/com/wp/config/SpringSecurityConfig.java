@@ -9,6 +9,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.PermissionEvaluator;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,6 +26,7 @@ import org.springframework.security.web.access.expression.DefaultWebSecurityExpr
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
 import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.session.FindByIndexNameSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.session.data.redis.RedisSessionRepository;
@@ -62,6 +66,14 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 
         return new SpringSessionBackedSessionRegistry(mySessionRepository);
     }
+
+    @Bean
+    public RoleHierarchy roleHierarchy(){
+        RoleHierarchyImpl  roleHierarchy = new RoleHierarchyImpl();
+        roleHierarchy.setHierarchy( "ROLE_ADMIN > ROLE_USER" );
+        return roleHierarchy;
+    }
+
     @Override
     public void configure( HttpSecurity http) throws Exception {
         http.apply( smsAuthenticationSecurityConfig );
@@ -74,29 +86,51 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
                 // 设置登陆页
                 .formLogin().loginPage("/login")
                 // 设置登陆成功页,失败页面
-                .defaultSuccessUrl("/").failureForwardUrl( "/login/error" )
-                .permitAll()
+                .defaultSuccessUrl("/").failureForwardUrl( "/login/error" ).permitAll()
                 // 自定义登陆用户名和密码参数，默认为username和password
 //                .usernameParameter("username")
 //                .passwordParameter("password")
                 .and().logout().deleteCookies("SESSIONID").permitAll()
                 .and().rememberMe().tokenRepository( persistentTokenRepository() )
                 //设置权限不足的返回逻辑
-                .and().exceptionHandling().accessDeniedHandler( customAccessDeniedHandler ).accessDeniedPage( "/index" )
+                .and().exceptionHandling()/*.accessDeniedHandler( customAccessDeniedHandler )*/.accessDeniedPage( "/403" )
                 .and().sessionManagement().invalidSessionUrl( "/invaild/session" )
                 .maximumSessions( 1 ).maxSessionsPreventsLogin( false )
-                .expiredSessionStrategy( customExpiredSessionStrategy ).sessionRegistry( springSessionBackedSessionRegistry() );
+                .expiredSessionStrategy( customExpiredSessionStrategy )
+                .sessionRegistry( springSessionBackedSessionRegistry() );
 
         // 关闭CSRF跨域
         http.csrf().disable();
+
     }
 
-    @Override
+    //解决不抛出UsernameNotFoundException的问题
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        //此参数为true时，会对UsernameNotFoundException进行包装，变成BadCredentialsException
+        provider.setHideUserNotFoundExceptions(false);
+        provider.setUserDetailsService(customUserDetailService);
+        provider.setPasswordEncoder(new PasswordEncoder() {
+            @Override
+            public String encode(CharSequence charSequence) {
+                return charSequence.toString();
+            }
+
+            @Override
+            public boolean matches(CharSequence charSequence, String s) {
+                return s.equals(charSequence.toString());
+            }
+        } );
+        return provider;
+    }
+
+    /*@Override
     protected void configure( AuthenticationManagerBuilder auth) throws Exception{
         //基于内存来存储用户信息
-        /*auth.inMemoryAuthentication().passwordEncoder(new BCryptPasswordEncoder())
+        *//*auth.inMemoryAuthentication().passwordEncoder(new BCryptPasswordEncoder())
                 .withUser("user").password(new BCryptPasswordEncoder().encode("123")).roles("USER").and()
-                .withUser("admin").password(new BCryptPasswordEncoder().encode("456")).roles("USER","ADMIN");*/
+                .withUser("admin").password(new BCryptPasswordEncoder().encode("456")).roles("USER","ADMIN");*//*
         auth.userDetailsService( customUserDetailService ).passwordEncoder( new PasswordEncoder() {
             @Override
             public String encode(CharSequence charSequence) {
@@ -109,7 +143,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
             }
         } );
 
-    }
+    }*/
 
     @Override
     public void configure(WebSecurity web) throws Exception {
@@ -130,6 +164,11 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
 //        tokenRepository.setCreateTableOnStartup(true);
         return tokenRepository;
     }
+
+    /*@Bean
+    public HttpSessionEventPublisher httpSessionEventPublisher (){
+        return new HttpSessionEventPublisher();
+    }*/
 
 
 }

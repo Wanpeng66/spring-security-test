@@ -27,7 +27,7 @@ public class CustomExpiredSessionStrategy implements SessionInformationExpiredSt
     public void onExpiredSessionDetected( SessionInformationExpiredEvent event ) throws IOException, ServletException {
         Map<String, Object> map = new HashMap<>(16);
         map.put("code", 0);
-        map.put("msg", "已经另一台机器登录，您被迫下线。" + event.getSessionInformation().getLastRequest());
+        map.put("msg", "您的会话已过期，请重新登陆。" + event.getSessionInformation().getLastRequest());
         // Map -> Json
         String json = objectMapper.writeValueAsString(map);
         /*Cookie session = new Cookie( "SESSIONID","" );

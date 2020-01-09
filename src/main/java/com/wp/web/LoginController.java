@@ -47,19 +47,18 @@ public class LoginController {
     @RequestMapping("/")
     public String showHome() {
         String name = SecurityContextHolder.getContext().getAuthentication().getName();
-        logger.info("当前登陆用户：" + name);
 
         return "home";
     }
-    @RequestMapping("/index")
+    @RequestMapping("/403")
     public String showIndex() {
-        return "index";
+        return "403";
     }
 
     @RequestMapping("/invaild/session")
     @ResponseBody
     public String sessionTimeOut() {
-        return "session 过期清除了......";
+        return "无效的session......";
     }
 
 

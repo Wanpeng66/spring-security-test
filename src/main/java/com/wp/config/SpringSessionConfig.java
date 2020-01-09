@@ -24,6 +24,7 @@ import org.springframework.session.data.redis.config.annotation.web.http.EnableR
 @EnableRedisHttpSession(redisNamespace="spring:security:session")
 public class SpringSessionConfig {
 
+    @Autowired
     private final RedisConnectionFactory redisConnectionFactory;
 
     public SpringSessionConfig( ObjectProvider<RedisConnectionFactory> redisConnectionFactory) {
